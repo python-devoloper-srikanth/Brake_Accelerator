@@ -3,26 +3,46 @@ from typing import List
 import numpy as np
 
 
-def find_driver_demand_ver2(end_type: int, time_type: str,
-                            time_brake: List[float], brake: List[int], brake_status: str,
-                            t_acc_ped: List[float], acc_ped: List[float], pedal_status: str,
+def find_driver_demand_ver3(end_type: int, time_type: str,
+                            time_brake: List[float], data_brake: List[int], brake_status: str,
+                            time_acc: List[float], data_acc: List[float], acc_status: str,
                             time_start: float, t_seat_rail_acc_filter: List[float], seat_rail_acc_filter: List[float]):
+    """
+
+    Args:
+        end_type:
+        time_type:
+        time_brake:
+        data_brake:
+        brake_status:
+        time_acc:
+        data_acc:
+        acc_status:
+        time_start:
+        t_seat_rail_acc_filter:
+        seat_rail_acc_filter:
+
+    Returns:
+
+    """
     # Initialise
-    t = []
-    type_ = []
-    status = []
+    t = None
+    type_ = None
+    status = None
 
     # Brake conditions
-    Tbrake = None  # find_status_time_ver2()
+    Tbrake = find_status_time_ver3('Brake', time_type, time_brake, data_brake, brake_status, time_start,
+                                   t_seat_rail_acc_filter, seat_rail_acc_filter)
     # Pedal conditions
-    Tpedal = None  # find_status_time_ver2()
+    Tpedal = find_status_time_ver3('Pedal', time_type, time_acc, data_acc, acc_status, time_start,
+                                   t_seat_rail_acc_filter, seat_rail_acc_filter)
 
     # No conditions
-    if len(Tbrake) == 0 and len(Tpedal) == 0:
+    if Tbrake is None and Tpedal is None:
         return t, type_, status
 
     # Both conditions
-    if len(Tbrake) != 0 and len(Tpedal) != 0:
+    if Tbrake is not None and Tpedal is not None:
         if end_type == 'Last':
             # Use the last action
             if Tbrake > Tpedal:
@@ -37,11 +57,11 @@ def find_driver_demand_ver2(end_type: int, time_type: str,
                 type_ = 'Pedal'
 
     # Brake only
-    if len(Tbrake) != 0 and len(Tpedal) == 0:
+    if Tbrake is not None and Tpedal is None:
         type_ = 'Brake'
 
     # Pedal only
-    if len(Tbrake) == 0 and len(Tpedal) != 0:
+    if Tbrake is None and Tpedal is not None:
         type_ = 'Pedal'
 
     if type_ == 'Brake':
@@ -49,12 +69,12 @@ def find_driver_demand_ver2(end_type: int, time_type: str,
         status = brake_status
     elif type_ == 'Pedal':
         t = Tpedal
-        status = pedal_status
+        status = acc_status
 
     return t, type_, status
 
 
-def find_status_time_ver2(pedal_type: str, time_type: str, time_pedal: List[float],
+def find_status_time_ver3(pedal_type: str, time_type: str, time_pedal: List[float],
                           data_pedal: List[int], pedal_status: str, time_start: float,
                           t_seat_rail_acc_filter: List[float], seat_rail_acc_filter: List[float]):
     """
@@ -72,76 +92,100 @@ def find_status_time_ver2(pedal_type: str, time_type: str, time_pedal: List[floa
     Returns:
 
     """
+    time_pedal = np.array(time_pedal)
+    data_pedal = np.array(data_pedal)
+    t_seat_rail_acc_filter = np.array(t_seat_rail_acc_filter)
+    seat_rail_acc_filter = np.array(seat_rail_acc_filter)
 
-    if type == 'Pedal':
+    if pedal_type == 'Pedal':
         tolerance = 0.1
-    elif type == 'Brake':
+    elif pedal_type == 'Brake':
         tolerance = 0.1
 
     # Initialise
-    t = []
+    t = None
+    p = None
+
     # Abort if no data
-    if len(pedal_status) == 0 or len(time_pedal) == 0 or len(data_pedal) == 0 or len(time_start) == 0:
+    if pedal_status == "" or len(time_pedal) == 0 or len(data_pedal) == 0 or time_start is None:
         return t
 
     # Find when tolerance is met
     if pedal_status in ['Zero Step In', 'Applying']:
         if time_type == 'End':
-            p = []
             # p = find(time_pedal >= time_start and data_pedal >= tolerance, 1, 'first')
+            bool_time_pedal = time_pedal >= time_start
+            bool_data_pedal = data_pedal >= tolerance
+            bool_time_data = np.logical_and(bool_time_pedal, bool_data_pedal)
+            if True not in bool_time_data:
+                return t
+            # get the required index from first
+            _, k = find_last_n_trues(bool_time_data, 1)
+            p = len(bool_time_data) - k
         elif time_type == 'Start':
-            p = []
-            # p = findDeltaTime('Max', time_pedal, data_pedal, time_start, 0.5)
-    elif pedal_status in ['Step In', 'Increasing']:
-        if time_type == 'End':
-            p = []
-        elif time_type == 'Start':
-            p = []
-            # p = findDeltaTime('Max',time_pedal,data_pedal,time_start,0.5);
+            p = find_delta_time_ver3('Max', time_pedal, data_pedal, time_start, 0.5)
+
     elif pedal_status in ['Lift Off', 'Releasing']:
         if time_type == 'End':
             if pedal_type == 'Brake':
                 # Get seat rail accel at start of event
-                accel_T0 = []
+                accel_T0 = 0
                 # accel_T0 = seatRailAccelFilter(helpers.sqt.timeEqual(tSeatRailAccelFilter,T0));
 
                 # findBrakeRelease
-                p = []
-                # p = find((tBrake >= T0 & (seatRailAccelFilter - accel_T0) >= tolerance), 1, 'first');
+                T0 = 0
+                bool_time_pedal = time_pedal >= time_start
+                bool_data_pedal = (seat_rail_acc_filter - accel_T0) >= tolerance
+                bool_time_data = np.logical_and(bool_time_pedal, bool_data_pedal)
+                if True not in bool_time_data:
+                    return t
+                # get the required index from first
+                _, k = find_last_n_trues(bool_time_data, 1)
+                p = len(bool_time_data) - k
             elif pedal_type == 'Pedal':
-                p = []
-                # p = find(time_pedal >= time_start & data_pedal <= tolerance, 1, 'first');
+                bool_time_pedal = time_pedal >= time_start
+                bool_data_pedal = data_pedal >= tolerance
+                bool_time_data = np.logical_and(bool_time_pedal, bool_data_pedal)
+                if True not in bool_time_data:
+                    return t
+                # get the required index from first
+                _, k = find_last_n_trues(bool_time_data, 1)
+                p = len(bool_time_data) - k
         elif time_type == 'Start':
-            p = []
-            # p = findDeltaTime('Min',time_pedal,data_pedal,time_start,0.5);
+            p = find_delta_time_ver3('Min', time_pedal, data_pedal, time_start, 0.5)
+
     elif pedal_status in ['Part Back Out', 'Reducing']:
         # Reduction above zero
         if time_type == 'End':
-            p = []
+            p = None
         elif time_type == 'Start':
-            p = []
-            # p = findDeltaTime('Min',time_pedal,data_pedal,time_start,0.5);
+            p = find_delta_time_ver3('Min', time_pedal, data_pedal, time_start, 0.5)
+    elif pedal_status in ['Step In', 'Increasing']:
+        if time_type == 'End':
+            p = None
+        elif time_type == 'Start':
+            p = find_delta_time_ver3('Max', time_pedal, data_pedal, time_start, 0.5)
     else:
-        p = []
+        p = None
 
-    if len(p) == 0:
+    if p is None:
         return t
 
     # Time of threshold
-    t = time_pedal(p)
+    t = time_pedal[p]
     return t
 
-def find_delta_time_ver3(type_: str, time_pedal: List[float],
-                    data_pedal: List[int], time_start: float, tolerance: float):
 
+def find_delta_time_ver3(type_: str, time_pedal: List[float],
+                         data_pedal: List[int], time_start: float, tolerance: float):
     time_pedal = np.array(time_pedal)
     data_pedal = np.array(data_pedal)
 
-    p = []
+    p = None
     bool_evt = time_pedal >= time_start
 
-    if not True in bool_evt:
-        return
+    if True not in bool_evt:
+        return p
 
     data_evt = np.array(data_pedal)[bool_evt]
     time_evt = np.array(time_pedal)[bool_evt]
@@ -163,9 +207,6 @@ def find_delta_time_ver3(type_: str, time_pedal: List[float],
     elif type_ == 'Max':
         kPeak = np.argmax(delta_data_valid)
     peak = delta_data_valid[kPeak]
-
-    # if kPeak == 0:
-    # return
 
     # Time of the min/max
     tPeak = time_valid[kPeak]
@@ -195,6 +236,7 @@ def find_delta_time_ver3(type_: str, time_pedal: List[float],
 
     return p
 
+
 def find_last_n_trues(bools, last_n_trues):
     result = bools[:]
     count = 0
@@ -207,8 +249,9 @@ def find_last_n_trues(bools, last_n_trues):
 
     return result, result.index(True)
 
+
 def find_delta_time_ver2(type_: str, time_pedal: List[float],
-                    data_pedal: List[int], time_start: float, tolerance: float):
+                         data_pedal: List[int], time_start: float, tolerance: float):
     p = []
     # i_evt = time_pedal >= time_start
     bool_evt = [True if value >= time_start else False for value in time_pedal]
@@ -245,8 +288,8 @@ def find_delta_time_ver2(type_: str, time_pedal: List[float],
         peak = max(delta_data_valid)  # value
         kPeak = delta_data_valid.index(peak)  # index
 
-    #if kPeak == 0:
-        #return
+    # if kPeak == 0:
+    # return
 
     # Time of the min/max
     tPeak = time_valid[kPeak]
@@ -291,6 +334,3 @@ def find_delta_time_ver2(type_: str, time_pedal: List[float],
         p = p + 1
 
     return p
-
-
-

@@ -36,7 +36,9 @@ def process():
     t_seat_rail = json_data_dict['t_seat_rail']
     seat_rail = json_data_dict['seat_rail']
 
-    p = find_delta_time_ver3('Max', time_acc_pedal, acc_pedal, time_start, 0.1)
+    p = find_driver_demand_ver3(end_type, time_type, time_brake_pedal, brake_pedal, status_brake_pedal,
+                                time_acc_pedal, acc_pedal, status_acc_pedal, time_start,
+                                t_seat_rail, seat_rail)
 
     print(p)
 
