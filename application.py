@@ -1,50 +1,53 @@
-import json
-import os
+from event_recognition.algs.helpers.utility import *
+from event_recognition.algs.helpers.find_driver_demand import DriverDemand
+import pandas as pd
 
-from event_recognition.algs.helpers.find_driver_demand import *
 
-def read_driver_demand_json():
+def driver_demand_for_acc_brake_pedals():
+    """
+
+    Returns:
+
+    """
+    # Navigate to the i/o file - 'get_driver_demand.json'
     this_file_directory = os.path.dirname(os.path.abspath(__file__))
     driver_demand_file_path = os.path.join(this_file_directory, 'input_data', 'get_driver_demand.json')
 
-    with open(driver_demand_file_path, 'r') as file:
-        file_data = json.load(file)
-        return file_data
+    # get the data from json as ictionery
+    json_data_dict = read_json(driver_demand_file_path)
 
-def process():
-    json_data_dict = read_driver_demand_json()
-
-    # dict_keys(['t', 'type', 'status', 'end_type', 'time_type',
-    # 'time_brake', 'brake', 'brake_status', 't_acc_ped', 'acc_ped',
-    # 'pedal_status', 'time_start', 't_seat_rail', 'seat_rail'])
-
+    # set the data to the variable
+    # output data
     t = json_data_dict['t']
     type = json_data_dict['type']
     status = json_data_dict['status']
+
+    # input data for finding driver demand
     end_type = json_data_dict['end_type']
     time_type = json_data_dict['time_type']
 
-    time_brake_pedal = json_data_dict['time_brake']
-    brake_pedal = json_data_dict['brake']
-    status_brake_pedal = json_data_dict['brake_status']
+    time_brake = pd.Series(json_data_dict['time_brake'])
+    brake = pd.Series(json_data_dict['brake'])
+    brake_pedal_status = json_data_dict['brake_status']
 
-    time_acc_pedal = json_data_dict['t_acc_ped']
-    acc_pedal = json_data_dict['acc_ped']
-    status_acc_pedal = json_data_dict['pedal_status']
+    time_acc = pd.Series(json_data_dict['t_acc_ped'])
+    acc = pd.Series(json_data_dict['acc_ped'])
+    acc_pedal_status = json_data_dict['pedal_status']
 
     time_start = json_data_dict['time_start']
-    t_seat_rail = json_data_dict['t_seat_rail']
-    seat_rail = json_data_dict['seat_rail']
 
-    p = find_driver_demand_ver3(end_type, time_type, time_brake_pedal, brake_pedal, status_brake_pedal,
-                                time_acc_pedal, acc_pedal, status_acc_pedal, time_start,
-                                t_seat_rail, seat_rail)
+    t_seat_rail = pd.Series(json_data_dict['t_seat_rail'])
+    seat_rail = pd.Series(json_data_dict['seat_rail'])
 
-    print(p)
+    # find driver demand
+    t, type, status = DriverDemand.find_driver_demand(end_type, time_type, time_brake, brake, brake_pedal_status,
+                                                      time_acc, acc, acc_pedal_status, time_start,
+                                                      t_seat_rail, seat_rail)
 
-
-
+    print(t)
+    print(type)
+    print(status)
 
 
 if __name__ == '__main__':
-    process()
+    driver_demand_for_acc_brake_pedals()

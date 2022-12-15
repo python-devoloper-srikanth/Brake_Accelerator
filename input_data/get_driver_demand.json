@@ -2,8 +2,8 @@
    "t":26.3615,
    "type":"Pedal",
    "status":"Lift Off",
-   "end_type":"first",
-   "time_type":"start",
+   "end_type":"First",
+   "time_type":"Start",
    "time_brake":[
       23.5715,
       23.5815,
