@@ -1,5 +1,8 @@
+import os.path
+
 import numpy as np
 from event_recognition.config.analysis import DATA_LOG_COMPARISON_RASTER
+from event_recognition.algs.helpers.utility import *
 
 
 def find_where_time_data_correspond(var1: list[float], var2: list[float]) -> (list[bool]):
@@ -23,3 +26,22 @@ def find_where_time_data_correspond(var1: list[float], var2: list[float]) -> (li
     equal_idx = (np.abs(var1 - var2) <= DATA_LOG_COMPARISON_RASTER).tolist()
 
     return equal_idx
+
+
+if __name__ == "__main__":
+    # Navigate to the i/o file - 'get_driver_demand.json'
+    this_file_directory = os.path.dirname(os.path.abspath(__file__))
+    root_folder = os.path.join(this_file_directory, '.\..', '.\..', '.\..')
+    driver_demand_file_path = os.path.join(this_file_directory, 'input_data', 'get_driver_demand.json')
+
+    # get the data from json as ictionery
+    json_data_dict = read_json(driver_demand_file_path)
+
+    time_acc = json_data_dict['t_acc_ped']
+    data_acc = json_data_dict['acc_ped']
+    time_brake = json_data_dict['time_brake']
+    data_brake = json_data_dict['brake']
+
+    equal_idx = find_where_time_data_correspond(data_acc, data_brake)
+    print(equal_idx)
+

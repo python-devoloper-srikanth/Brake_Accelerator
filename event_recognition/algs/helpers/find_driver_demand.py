@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from typing import Tuple, Optional
 
 
 class DriverDemand:
@@ -13,25 +14,25 @@ class DriverDemand:
                            time_brake: pd.Series, data_brake: pd.Series, brake_status: str,
                            time_acc: pd.Series, data_acc: pd.Series, acc_status: str,
                            time_start: float, t_seat_rail_acc_filter: pd.Series,
-                           seat_rail_acc_filter: pd.Series) -> [float, str, str]:
+                           seat_rail_acc_filter: pd.Series) -> Tuple[Optional[float], Optional[str], Optional[str]]:
         """
-
+        
         Args:
-            end_type:
-            time_type:
-            time_brake:
-            data_brake:
-            brake_status:
-            time_acc:
-            data_acc:
-            acc_status:
-            time_start:
-            t_seat_rail_acc_filter:
-            seat_rail_acc_filter:
+            end_type: 
+            time_type: 
+            time_brake: 
+            data_brake: 
+            brake_status: 
+            time_acc: 
+            data_acc: 
+            acc_status: 
+            time_start: 
+            t_seat_rail_acc_filter: 
+            seat_rail_acc_filter: 
 
         Returns:
 
-        """
+        """""
 
         # Brake conditions
         Tbrake = DriverDemand.find_status_time('Brake', time_type, time_brake, data_brake, brake_status, time_start,
@@ -79,7 +80,7 @@ class DriverDemand:
     @staticmethod
     def find_status_time(pedal_type: str, time_type: str, time_pedal: pd.Series,
                          data_pedal: pd.Series, pedal_status: str, time_start: float,
-                         t_seat_rail_acc_filter: pd.Series, seat_rail_acc_filter: pd.Series) -> float:
+                         t_seat_rail_acc_filter: pd.Series, seat_rail_acc_filter: pd.Series) -> Optional[float]:
         """
         Find where the data starts to increase above tolerance value
         Args:
@@ -167,7 +168,7 @@ class DriverDemand:
 
     @staticmethod
     def find_delta_time(type_: str, time_pedal: pd.Series,
-                        data_pedal: pd.Series, time_start: float, tolerance: float) -> int:
+                        data_pedal: pd.Series, time_start: float, tolerance: float) -> Optional[int]:
 
         bool_evt = time_pedal >= time_start
 
