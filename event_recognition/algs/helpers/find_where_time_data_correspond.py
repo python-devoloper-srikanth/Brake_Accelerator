@@ -30,9 +30,8 @@ def find_where_time_data_correspond(var1: list[float], var2: list[float]) -> (li
 
 if __name__ == "__main__":
     # Navigate to the i/o file - 'get_driver_demand.json'
-    this_file_directory = os.path.dirname(os.path.abspath(__file__))
-    root_folder = os.path.join(this_file_directory, '.\..', '.\..', '.\..')
-    driver_demand_file_path = os.path.join(this_file_directory, 'input_data', 'get_driver_demand.json')
+    root_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+    driver_demand_file_path = os.path.join(root_folder, 'input_data', 'get_driver_demand.json')
 
     # get the data from json as ictionery
     json_data_dict = read_json(driver_demand_file_path)
